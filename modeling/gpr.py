@@ -21,21 +21,28 @@ from sklearn.metrics import root_mean_squared_error, r2_score
 ''' Feature Engineering and Training '''
 def read_data_and_preprocess():
 
-    data = fetch_california_housing()
+    X_train, X_test, Y_train, Y_test = basic_data() # Basic hardcoded data to test out prediction
 
-    # Convert data from sklearn bunch to dataframe to sample at random
-    X = data.data
-    X = pd.DataFrame(data.data, columns=data.feature_names)
-    Y = data.target
-    Y = pd.Series(data.target, name='target')
-    fulldata = pd.concat([X,Y], axis=1)
-    fulldata = fulldata.sample(n=1000, replace=True, random_state=42)
+    # Real life data to be added  
 
-    # Re-extract features and labels
-    X = fulldata.drop(columns=['target'])
-    Y = fulldata['target']
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42) # 80-20 train-test split
-    
+    return X_train, X_test, Y_train, Y_test
+
+def basic_data():
+    X_train = np.array(
+    [
+        [0.865], [0.666], [0.804], [0.771], [0.147], [0.866], [0.007], [0.026],
+        [0.171], [0.889], [0.243]
+    ]
+    )
+    Y_train = np.array(
+        [
+            [1.57], [3.48], [3.12], [3.91], [3.07], [1.35], [3.80], [3.82], [3.49],
+            [1.30], [4.00]
+        ]
+    )   
+    X_test = np.array([[0.028]])
+    Y_test = np.array([[3.82]])
+
     return X_train, X_test, Y_train, Y_test
 
 def feature_encoding(X): 
@@ -49,9 +56,9 @@ def label_encoding(Y):
     pass
 
 def gp_training(X,Y):
-
-    kernel = gpflow.kernels.SquaredExponential()
-    model = gpflow.models.GPR((X,Y), kernel=kernel)
+    
+    k = gpflow.kernels.SquaredExponential()
+    model = gpflow.models.GPR(data=(X,Y), kernel=k, mean_function=None)
     
     # Optimize hyperparameters of the kernel
     opt = gpflow.optimizers.Scipy()
@@ -61,21 +68,14 @@ def gp_training(X,Y):
 
 def gp_predict(model, X_test):
 
-    mean, covar = model.predict_f(X_test.values, full_cov=False) # predict_f expects a numpy array 
-
-    # GPR is configured for multioutput regression in GPFlow. Not sure how to change that configuration. The mean dims are (200,800) meaning there are 800 predictions for the same input
-    # Selecting only one out of them as of now. The root cause of this is yet to be debugged
-    mean = mean.numpy()[:,0] 
+    mean, _ = model.predict_f(X_test) # predict_f expects a numpy array 
 
     return mean
 
 def gp_judge_model(Y_test, Y_preds):
 
-    rmse = root_mean_squared_error(Y_test.to_numpy(), Y_preds) 
-    rsq =  r2_score(Y_test.to_numpy(), Y_preds)
-
+    rmse = root_mean_squared_error(Y_test, Y_preds.numpy()) 
     print(f'RMSE: {rmse}')    
-    print(f'Rsq: {rsq}')
 
 ''' Helper functions'''
 def check_correlation(X):
@@ -95,7 +95,7 @@ def path_exists(path):
 
 ''' Main function '''
 def main():
-    X_train, X_test, Y_train, Y_test = read_data_and_preprocess()
+    X_train, X_test, Y_train, Y_test = read_data_and_preprocess()    
     trained_model = gp_training(X_train, Y_train)
     print('Training complete.')
     Y_predictions = gp_predict(trained_model, X_test)
