@@ -9,6 +9,7 @@ import gpflow
 
 # Preprocessing
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
 
 # Visualization
 import matplotlib.pyplot as plt
@@ -21,9 +22,25 @@ from sklearn.metrics import root_mean_squared_error, r2_score
 ''' Feature Engineering and Training '''
 def read_data_and_preprocess():
 
-    X_train, X_test, Y_train, Y_test = basic_data() # Basic hardcoded data to test out prediction
+    # X_train, X_test, Y_train, Y_test = basic_data() # Basic hardcoded data to test out prediction
+    X_train, X_test, Y_train, Y_test = material_data() 
 
-    # Real life data to be added  
+    return X_train, X_test, Y_train, Y_test
+
+def material_data():
+    df = pd.read_csv("data/material.csv")
+    df = feature_encoding(df)
+    df = target_encoding(df)
+    
+    data = df.to_numpy()
+
+    train = data[:1500,:]
+    X_train = train[:,:7] # features
+    Y_train = train[:,-1] # label
+
+    test = data[1500:,:]
+    X_test = test[:,:7] # features
+    Y_test = test[:,-1] # label
 
     return X_train, X_test, Y_train, Y_test
 
@@ -45,19 +62,21 @@ def basic_data():
 
     return X_train, X_test, Y_train, Y_test
 
-def feature_encoding(X): 
+def feature_encoding(df): 
+    encoder = LabelEncoder()
+    df['Material'] = encoder.fit_transform(df['Material'])
     # In the future, this will be needed when GPR is tried on a real-life dataset
-    # return X
-    pass
+    return df
+    
 
-def label_encoding(Y):
-    # In the future, this will be needed when GPR is tried on a real-life dataset
-    # return Y
-    pass
+def target_encoding(df):
+    df['Use'] = df['Use'].astype(int)
+    return df
+    
 
 def gp_training(X,Y):
-    
-    k = gpflow.kernels.SquaredExponential()
+    Y = Y.reshape(-1,1)
+    k = gpflow.kernels.SquaredExponential(lengthscales=1) # Need to set lengthscales
     model = gpflow.models.GPR(data=(X,Y), kernel=k, mean_function=None)
     
     # Optimize hyperparameters of the kernel
@@ -73,9 +92,10 @@ def gp_predict(model, X_test):
     return mean
 
 def gp_judge_model(Y_test, Y_preds):
-
     rmse = root_mean_squared_error(Y_test, Y_preds.numpy()) 
-    print(f'RMSE: {rmse}')    
+    r2 = r2_score(Y_test, Y_preds.numpy())
+    print(f'RMSE: {rmse}')   
+    print(f'Rsq: {r2}') 
 
 ''' Helper functions'''
 def check_correlation(X):
