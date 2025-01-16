@@ -76,7 +76,7 @@ def target_encoding(df):
 
 def gp_training(X,Y):
     Y = Y.reshape(-1,1)
-    k = gpflow.kernels.SquaredExponential(lengthscales=1) # Need to set lengthscales
+    k = gpflow.kernels.SquaredExponential(lengthscales=1) # Need to set lengthscales to avoid ill conditioned matrix
     model = gpflow.models.GPR(data=(X,Y), kernel=k, mean_function=None)
     
     # Optimize hyperparameters of the kernel
