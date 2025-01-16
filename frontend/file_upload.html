@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plot and Metrics Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+
+        #upload-section {
+            margin-bottom: 20px;
+        }
+
+        .metrics {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        img {
+            margin-top: 20px;
+            max-width: 80%;
+            height: auto;
+            border: 1px solid #ddd;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Upload Data and View Metrics</h1>
+
+    <div id="upload-section">
+        <input type="file" id="fileInput" />
+        <button id="uploadButton">Upload and Process</button>
+    </div>
+
+    <div id="metrics-section" class="hidden">
+        <p class="metrics"><strong>RMSE:</strong> <span id="rmse-value">-</span></p>
+        <p class="metrics"><strong>R²:</strong> <span id="r2-value">-</span></p>
+    </div>
+
+    <script>
+        const uploadButton = document.getElementById("uploadButton");
+        const fileInput = document.getElementById("fileInput");
+        const metricsSection = document.getElementById("metrics-section");
+        const rmseValue = document.getElementById("rmse-value");
+        const r2Value = document.getElementById("r2-value");
+        uploadButton.addEventListener("click", async () => {
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert("Please select a file to upload.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                // Send the file to the FastAPI backend
+                const response = await fetch("http://localhost:8000/upload_train_data/", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to process the file."+ repsonse.json);
+                }
+
+                const data = await response.json();
+
+                // Update the frontend with the returned metrics and plot
+                rmseValue.textContent = data.rmse.toFixed(4); // Display RMSE
+                r2Value.textContent = data.r2.toFixed(4); // Display R²
+
+                metricsSection.classList.remove("hidden");
+            } catch (error) {
+                alert("Error processing the file: " + error.message);
+            }
+        });
+    </script>
+</body>
+
+</html>

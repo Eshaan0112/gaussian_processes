@@ -21,7 +21,7 @@ from sklearn.metrics import root_mean_squared_error, r2_score
 
 ''' Feature Engineering and Training '''
 def read_data_and_preprocess(csv_file):
-    
+
     # X_train, X_test, Y_train, Y_test = basic_data() # Basic hardcoded data to test out prediction
     X_train, X_test, Y_train, Y_test = material_data(csv_file) 
 
@@ -97,6 +97,25 @@ def gp_judge_model(Y_test, Y_preds):
     print(f'RMSE: {rmse}')   
     print(f'Rsq: {r2}') 
 
+    '''Plot predictions'''
+    '''plt.figure(figsize=(10, 6))
+    plt.scatter(range(len(Y_test)), Y_test, color='blue', label='True Values', alpha=0.6)
+
+    # Scatter plot predicted values (Y_preds) in red
+    plt.scatter(range(len(Y_preds)), Y_preds, color='red', label='Predicted Values', alpha=0.6)
+   
+    plt.title('True vs Predicted Values')
+    plt.xlabel('Sample Index')
+    plt.ylabel('Class (0 or 1)')
+    plt.legend()
+
+    # Show grid for better visibility
+    plt.grid(True)
+
+    # Show the plot
+    plt.show()'''
+    return rmse, r2
+
 ''' Helper functions'''
 def check_correlation(X):
 
@@ -119,7 +138,8 @@ def main(csv_file):
     trained_model = gp_training(X_train, Y_train)
     print('Training complete.')
     Y_predictions = gp_predict(trained_model, X_test)
-    gp_judge_model(Y_test, Y_predictions)
+    rmse,r2 = gp_judge_model(Y_test, Y_predictions)
+    return rmse,r2
     
 if __name__=="__main__":
-    main()
+    main('data/material.csv')
