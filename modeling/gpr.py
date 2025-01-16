@@ -20,15 +20,15 @@ from sklearn.metrics import root_mean_squared_error, r2_score
 
 
 ''' Feature Engineering and Training '''
-def read_data_and_preprocess():
-
+def read_data_and_preprocess(csv_file):
+    
     # X_train, X_test, Y_train, Y_test = basic_data() # Basic hardcoded data to test out prediction
-    X_train, X_test, Y_train, Y_test = material_data() 
+    X_train, X_test, Y_train, Y_test = material_data(csv_file) 
 
     return X_train, X_test, Y_train, Y_test
 
-def material_data():
-    df = pd.read_csv("data/material.csv")
+def material_data(csv_file):
+    df = pd.read_csv(csv_file)
     df = feature_encoding(df)
     df = target_encoding(df)
     
@@ -114,8 +114,8 @@ def path_exists(path):
         print("Path does not exist")
 
 ''' Main function '''
-def main():
-    X_train, X_test, Y_train, Y_test = read_data_and_preprocess()    
+def main(csv_file):
+    X_train, X_test, Y_train, Y_test = read_data_and_preprocess(csv_file)    
     trained_model = gp_training(X_train, Y_train)
     print('Training complete.')
     Y_predictions = gp_predict(trained_model, X_test)
