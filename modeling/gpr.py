@@ -6,6 +6,7 @@ from sklearn.datasets import fetch_california_housing
 import pandas as pd
 import numpy as np
 import gpflow
+import tensorflow as tf
 
 # Preprocessing
 from sklearn.model_selection import train_test_split
@@ -86,7 +87,7 @@ def gp_training(X,Y):
     return model
 
 def gp_predict(model, X_test):
-
+    print(X_test)
     mean, _ = model.predict_f(X_test) # predict_f expects a numpy array 
 
     return mean
@@ -116,6 +117,13 @@ def gp_judge_model(Y_test, Y_preds):
     plt.show()'''
     return rmse, r2
 
+def gp_save_model(model):
+    checkpoint = tf.train.Checkpoint(model=model)
+    model_saved_at = "../optimization/gpr_model_checkpoint"
+    checkpoint.save(model_saved_at)
+    print(f"Model saved at {model_saved_at}")
+
+
 ''' Helper functions'''
 def check_correlation(X):
 
@@ -137,7 +145,9 @@ def main(csv_file):
     X_train, X_test, Y_train, Y_test = read_data_and_preprocess(csv_file)    
     trained_model = gp_training(X_train, Y_train)
     print('Training complete.')
+    gp_save_model(trained_model)
     Y_predictions = gp_predict(trained_model, X_test)
+    print(Y_predictions)
     rmse,r2 = gp_judge_model(Y_test, Y_predictions)
     return rmse,r2
     
