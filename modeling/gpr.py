@@ -1,6 +1,4 @@
 '''Import statements'''
-# Data
-from sklearn.datasets import fetch_california_housing
 
 # ML
 import pandas as pd
@@ -22,6 +20,18 @@ from sklearn.metrics import root_mean_squared_error, r2_score
 
 ''' Feature Engineering and Training '''
 def read_data_and_preprocess(csv_file):
+    """
+    Read training, testing data
+
+    Args:
+        csv_file (str): CSV file of training data
+
+    Returns:
+        X_train(pd.Dataframe): Training features data
+        X_test(pd.Dataframe): Testing features data
+        Y_train(pd.Dataframe): Training labels data
+        Y_test(pd.Dataframe): Testing labels data
+    """
 
     # X_train, X_test, Y_train, Y_test = basic_data() # Basic hardcoded data to test out prediction
     X_train, X_test, Y_train, Y_test = material_data(csv_file) 
@@ -29,9 +39,22 @@ def read_data_and_preprocess(csv_file):
     return X_train, X_test, Y_train, Y_test
 
 def material_data(csv_file):
+    """
+    Preprocess and split data
+
+    Args:
+        csv_file (str): Training data file
+
+    Returns:
+        X_train(pd.Dataframe): Training features data
+        X_test(pd.Dataframe): Testing features data
+        Y_train(pd.Dataframe): Training labels data
+        Y_test(pd.Dataframe): Testing labels data
+    """
+
     df = pd.read_csv(csv_file)
-    df = feature_encoding(df)
-    df = target_encoding(df)
+    df = feature_encoding(df) # encode features
+    df = target_encoding(df) # encode labels
     
     data = df.to_numpy()
 
@@ -46,6 +69,15 @@ def material_data(csv_file):
     return X_train, X_test, Y_train, Y_test
 
 def basic_data():
+    """
+    Hardcoded basic data
+
+    Returns:
+        X_train(pd.Dataframe): Training features data
+        X_test(pd.Dataframe): Testing features data
+        Y_train(pd.Dataframe): Training labels data
+        Y_test(pd.Dataframe): Testing labels data
+    """
     X_train = np.array(
     [
         [0.865], [0.666], [0.804], [0.771], [0.147], [0.866], [0.007], [0.026],
@@ -64,20 +96,48 @@ def basic_data():
     return X_train, X_test, Y_train, Y_test
 
 def feature_encoding(df): 
+    """
+    Encodes features
+
+    Args:
+        df (pd.Dataframe): Feature dataframe
+
+    Returns:
+        df (pd.Dataframe): Feature dataframe
+    """
     encoder = LabelEncoder()
     df['Material'] = encoder.fit_transform(df['Material'])
-    # In the future, this will be needed when GPR is tried on a real-life dataset
     return df
     
 
 def target_encoding(df):
+    """
+    Converts Boolean labels to 0s and 1s
+
+    Args:
+        df (pd.Dataframe): Labels series
+
+    Returns:
+        df (pd.Dataframe): Labels series
+    """
+
     df['Use'] = df['Use'].astype(int)
     return df
     
 
 def gp_training(X,Y):
+    """
+    GPR training 
+
+    Args:
+        X (pd.Dataframe): Features dataframe
+        Y (pd.Series): Labels dataframe
+
+    Returns:
+        model (gpflow.models.gpr.GPR): Trained model
+    """
     Y = Y.reshape(-1,1)
-    k = gpflow.kernels.SquaredExponential(lengthscales=1) # Need to set lengthscales to avoid ill conditioned matrix
+    k = gpflow.kernels.SquaredExponential(lengthscales=1) # need to set lengthscales to avoid ill conditioned matrix
     model = gpflow.models.GPR(data=(X,Y), kernel=k, mean_function=None)
     
     # Optimize hyperparameters of the kernel
@@ -87,53 +147,61 @@ def gp_training(X,Y):
     return model
 
 def gp_predict(model, X_test):
+    """
+    Prediction function
+
+    Args:
+        model (gpflow.models.gpr.GPR): Trained model
+        X_test (pd.Dataframe): Labels dataframe
+
+    Returns:
+        mean(tensor): Mean of GPR (predictions)
+    """
     print(X_test)
     mean, _ = model.predict_f(X_test) # predict_f expects a numpy array 
 
     return mean
 
 def gp_judge_model(Y_test, Y_preds):
+    """
+    RMSE and Rsquared value of GPR model
+
+    Args:
+        Y_test (ndarray): True predictions
+        Y_preds (tensor): GPR predictions
+
+    Returns:
+        [type]: [description]
+    """
     rmse = root_mean_squared_error(Y_test, Y_preds.numpy()) 
     r2 = r2_score(Y_test, Y_preds.numpy())
+
     print(f'RMSE: {rmse}')   
     print(f'Rsq: {r2}') 
 
-    '''Plot predictions'''
-    '''plt.figure(figsize=(10, 6))
-    plt.scatter(range(len(Y_test)), Y_test, color='blue', label='True Values', alpha=0.6)
-
-    # Scatter plot predicted values (Y_preds) in red
-    plt.scatter(range(len(Y_preds)), Y_preds, color='red', label='Predicted Values', alpha=0.6)
-   
-    plt.title('True vs Predicted Values')
-    plt.xlabel('Sample Index')
-    plt.ylabel('Class (0 or 1)')
-    plt.legend()
-
-    # Show grid for better visibility
-    plt.grid(True)
-
-    # Show the plot
-    plt.show()'''
     return rmse, r2
 
 def gp_save_model(model):
+    """
+    Save GPR model with tensorflow
+
+    Args:
+        model (gpflow.models.gpr.GPR): GPR model to be saved
+    """
     checkpoint = tf.train.Checkpoint(model=model)
-    model_saved_at = "../optimization/gpr_model_checkpoint"
+    model_saved_at = "../optimization/gpr_model_checkpoint" # to use during optimization
     checkpoint.save(model_saved_at)
     print(f"Model saved at {model_saved_at}")
 
 
 ''' Helper functions'''
 def check_correlation(X):
-
     print(f'Check correlation between features')
     corr_matrix = pd.DataFrame(X).corr()
     sns.heatmap(corr_matrix, annot=True, cmap='coolwarm')
     plt.show()
 
 def path_exists(path):
-
     import os
     if os.path.exists(path):
         print("Path exists")
@@ -142,6 +210,15 @@ def path_exists(path):
 
 ''' Main function '''
 def main(csv_file):
+    """
+    Driver function
+
+    Args:
+        csv_file (str): CSV file training data
+
+    Returns:
+        rmse, r2 (float, float): metrics
+    """
     X_train, X_test, Y_train, Y_test = read_data_and_preprocess(csv_file)    
     trained_model = gp_training(X_train, Y_train)
     print('Training complete.')
@@ -149,6 +226,7 @@ def main(csv_file):
     Y_predictions = gp_predict(trained_model, X_test)
     print(Y_predictions)
     rmse,r2 = gp_judge_model(Y_test, Y_predictions)
+
     return rmse,r2
     
 if __name__=="__main__":
