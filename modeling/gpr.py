@@ -55,16 +55,17 @@ def material_data(csv_file):
     df = pd.read_csv(csv_file)
     df = feature_encoding(df) # encode features
     df = target_encoding(df) # encode labels
+
+    check_correlation(df)
     
     data = df.to_numpy()
-
     train = data[:1500,:]
     X_train = train[:,:7] # features
     Y_train = train[:,-1] # label
 
     test = data[1500:,:]
-    X_test = test[:,:7] # features
-    Y_test = test[:,-1] # label
+    X_test = test[:,:7] 
+    Y_test = test[:,-1] 
 
     return X_train, X_test, Y_train, Y_test
 
@@ -196,10 +197,16 @@ def gp_save_model(model):
 
 ''' Helper functions'''
 def check_correlation(X):
+    """
+    Check correlation of each feature with output to see if this is a LP problem or a NLP problem
+
+    Args:
+        X (pd.Dataframe): Input data frame
+    """
+
     print(f'Check correlation between features')
-    corr_matrix = pd.DataFrame(X).corr()
-    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm')
-    plt.show()
+    corr_matrix = X.corr()
+    # print(corr_matrix['Use'])
 
 def path_exists(path):
     import os
@@ -211,7 +218,7 @@ def path_exists(path):
 ''' Main function '''
 def main(csv_file):
     """
-    Driver function
+    Driver function that reads data, trains, predicts and judges for the GPR model
 
     Args:
         csv_file (str): CSV file training data
@@ -224,7 +231,7 @@ def main(csv_file):
     print('Training complete.')
     gp_save_model(trained_model)
     Y_predictions = gp_predict(trained_model, X_test)
-    print(Y_predictions)
+    print(f"Y_test: {Y_test}")
     rmse,r2 = gp_judge_model(Y_test, Y_predictions)
 
     return rmse,r2

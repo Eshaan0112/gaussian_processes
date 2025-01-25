@@ -14,6 +14,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def rebuild_gpr_model(model_saved_at):
     """
+    Rebuild GPR model using saved checkpoints
+
     Args:
         model_saved_at (str): Directory where the GPR model is saved
 
@@ -39,6 +41,8 @@ def rebuild_gpr_model(model_saved_at):
 
 def verify_model(rebuilt_model):
     """
+    Simple check to verify rebuilt model
+    
     Args:
         rebuilt_model (gpflow.models.gpr.GPR): Rebuilt model
 
@@ -58,12 +62,14 @@ def verify_model(rebuilt_model):
     else:
         return False
 
-if __name__=="__main__":
+def main_opt():
     model_saved_at = "gpr_model_checkpoint-1"
     rebuilt_model = rebuild_gpr_model(model_saved_at)
-
+    return rebuilt_model
     #todo
     '''
     pyomo optimization
     '''
+if __name__=="__main__":
+    _= main_opt()
 
