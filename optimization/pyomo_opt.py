@@ -1,5 +1,5 @@
 '''Import statements'''
-from pyomo.environ import ConcreteModel, Var, Objective, SolverFactory, maximize
+from pyomo.environ import ConcreteModel, Var, Objective, SolverFactory, maximize, Param
 import pyomo.environ as pyo
 import numpy as np
 import tensorflow as tf
@@ -23,73 +23,77 @@ if opt is None:
         "using the %s interface" % (solver, solver_io)
     )
 
-def acquisition_function_binary(candidates, gpc_model, f_target = 1.0):
-    """
-    Calculating Expected Improvement as an acquisition function for Bayesian Optimization
+def acquisition_function_callback(x_values, gpr_model, f_target=1.0, xi=0.01):
+    # Convert the Pyomo variables into a NumPy array for GPR
+    x_array = np.array(x_values).reshape(1, -1)
 
-    Args:
-        candidates ([type]): [description]
-        gpc_model ([type]): [description]
-        f_target (float, optional): [description]. Defaults to 1.0.
+    # Predict mean (mu) and variance (var) using the GPR model
+    mu, var = gpr_model.predict_f(x_array)
+    sigma = np.sqrt(np.diagonal(var))
 
-    Returns:
-        [type]: [description]
-    """
-    x_tensor = tf.convert_to_tensor(candidates, dtype=tf.float64)
-    mean, var = gpc_model.predict_f(x_tensor)
-    sigma = math.sqrt(var)
-    mean = sigmoid(mean)    
-    improvement = np.maximum(mean - f_target, 0)
-    
-    # Compute Expected Improvement
-    # Avoid division by zero if sigma is zero
-    with np.errstate(divide='ignore', invalid='ignore'):
-        z = (mean - f_target) / sigma
-        ei = improvement * norm.cdf(z) + sigma * norm.pdf(z)
-    
-    # Return the negative EI (since we're minimizing)
-    return -ei
+    # Compute EI
+    best_observed = f_target
+    Z = (mu - best_observed) / (sigma + 1e-9)  # Avoid division by zero
+    ei_value = (mu - best_observed) * norm.cdf(Z) + sigma * norm.pdf(Z)
+    return ei_value[0][0]  # Return the scalar EI value
 
-# Pyomo Optimization Model
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+
 def run_optimizer(gpr_model, f_target=1.0):
+    import pdb;pdb.set_trace()
+    import pyomo.environ as pyo
+    import numpy as np
+
     # Create a Pyomo model
     model = pyo.ConcreteModel()
-    num_properties=7
-    
-    # Define decision variable(s) - let's assume we are optimizing for a single material property
-    # You can expand this to multiple properties if needed (e.g., x1, x2, ..., xn)
-    model.x = pyo.Var(range(num_properties), domain=pyo.Reals)
-    initial_values = [1.326e+03, 4.800e+02, 3.000e+02, 2.060e+05, 8.000e+04, 3.000e-01, 7.860e+03]
-    for i in range(num_properties):
-        model.x[i] = initial_values[i]  # Initialize with your data or an educated guess
-    # Define the objective function: Expected Improvement (EI)
+    num_properties = 7
+
+    # Define decision variables
+    model.x = pyo.Var(range(num_properties), domain=pyo.Reals, initialize=0.0)  # Initialize to 0.0
+
+
+    # Initialize decision variables with some starting values
+    initial_values = {0:1.326e+03, 1:4.800e+02, 2:3.000e+02, 3:2.060e+05, 4:8.000e+04, 5:3.000e-01, 6:7.860e+03}
+    # for i in range(num_properties):
+    #     model.x[i].set_value(initial_values[i])
+
+    # External function to compute the acquisition function (Expected Improvement)
+    # Define the objective function
     def objective_function(model):
-        
-        candidates = np.array([pyo.value(model.x[i]) for i in range(num_properties)]).reshape(1, -1)
-        ei_value = acquisition_function_binary(candidates, gpr_model, f_target)
+        # Extract decision variables as concrete values
+        x_values = [model.x[i] for i in range(len(model.x))]
+
+        # Use a callback to compute the acquisition function (EI)
+        ei_value = acquisition_function_callback(
+            x_values=[pyo.value(var) for var in x_values],  # Extract concrete values
+            gpr_model=gpr_model,
+            f_target=f_target
+        )
         return ei_value
-    
+
+
+
+    import pdb;pdb.set_trace()
+    # Set the objective in the Pyomo model
     model.obj = pyo.Objective(rule=objective_function, sense=pyo.minimize)
-    
-    
+
+    import pdb;pdb.set_trace()
+
     # Solve the model using the Ipopt solver
     solver = pyo.SolverFactory('ipopt')
     solver.options['tol'] = 1e-6  # Set tolerance for solver precision
     solver.options['max_iter'] = 1000  # Max number of iterations
-    
-    _ = solver.solve(model, tee=True)
-    
+
+    results = solver.solve(model, tee=True)
+
     # Get the optimized material properties
-    optimized_material_properties = [model.x[i].value for i in range(len(num_properties))]
-    
+    optimized_material_properties = [model.x[i].value for i in range(num_properties)]
+
     return optimized_material_properties
-
-
-''' Helper functions'''
-def sigmoid(x):
-  return 1 / (1 + math.exp(-x))
 
 if __name__=="__main__":
     gpr_model = main_opt()
-    properties = run_optimizer(gpr_model)
-    print("Optimized Material Properties:", properties)
+    opt_props = run_optimizer(gpr_model)
+    print(opt_props)
