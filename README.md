@@ -1,5 +1,9 @@
 # A full-stack implementation of Gaussian Processes
 
+## Foundational concepts
+1. Gaussian Process Regression (GPR): This short tutorial should help you with the basics of GPR: [GPR_tutorial](https://arxiv.org/html/2009.10862v5)
+2. Bayesian Optimization: This tutorial has some great insights: [bayes_opt_tutorial](https://arxiv.org/abs/1807.02811)
+   
 ## Data details
 The Material Dataset (located `modeling/data`) includes the following mechanical properties:
 
@@ -20,10 +24,14 @@ You can read more about the dataset [here](https://www.kaggle.com/datasets/purus
 This system provides the user with a placeholder to upload a CSV dataset (in this specific case some material properties - details provided below) and displays the RMSE and Rsq values after performing Gaussian Process Regression on the data uploaded as well as printing the optimized material properties in the CLI that have a constraint of choosing "Yes" in the label.
 Essentially, the material properties that are returned are the final optimized inputs which have the highest probability to have "Use" as "Yes"
 
-## How to run the project:
+## How to run the project
 ### NOTE: poetry basics and ML basics are assumed to run this project
-1. Run backend from project root: `/gaussian_processes`
+After setting up the poetry environment: 
+
+1. Run backend from project root: `/gaussian_processes` as
+   
   ``` poetry run uvicorn api.app:app --reload ```
+  
 2. Run frontend from `gaussain_processes/frontend/` using VS code extension live server
 
 
